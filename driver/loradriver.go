@@ -170,15 +170,6 @@ func getDeviceParameters(protocols map[string]models.ProtocolProperties) (LoraPr
 		return restDeviceProtocolParams, errors.New("EUI not found")
 	}
 
-	// Get end device codec
-	if codec, ok := protocolParams[LoraCodec]; ok {
-		if restDeviceProtocolParams.Codec, ok = codec.(string); !ok {
-			return restDeviceProtocolParams, errors.New("Codec is not string type")
-		}
-	} else {
-		return restDeviceProtocolParams, errors.New("Codec not found")
-	}
-
 	return restDeviceProtocolParams, nil
 }
 
@@ -201,12 +192,29 @@ func (driver *LoraDriver) AddDevice(deviceName string, protocols map[string]mode
 
 	// 登录chirpstack
 	ctx := driver.login()
+
+	var profileId string
+	// 创建chirpstack device profile
+	var profile models.DeviceProfile
+	if profile, err = driver.sdk.GetProfileByName(device.ProfileName); err == nil {
+		// lorawan返回的是json对象数据，
+		if len(profile.DeviceResources) == 1 {
+			optional := profile.DeviceResources[0].Properties.Optional
+			if _, ok := optional[CODEC]; !ok {
+				return errors.New("optional codec not exists")
+			}
+			codec := fmt.Sprintf("%v", optional[CODEC])
+
+			profileId, err = driver.createProfile(ctx, driver.tenantId, profile.Name, codec)
+		}
+	}
+
 	if strings.Contains(device.ProfileName, LoraGateway) {
 		// 创建网关
-		err = driver.createGateway(ctx, protocolParams.EUI, deviceName)
+		err = driver.createGateway(ctx, protocolParams.EUI, deviceName, driver.tenantId)
 	} else {
 		// 创建设备
-		err = driver.createDevice(ctx, protocolParams.EUI, deviceName, device.ProfileName, protocolParams.Codec)
+		err = driver.createDevice(ctx, protocolParams.EUI, deviceName, profileId, driver.applicationId)
 	}
 
 	return
@@ -258,6 +266,9 @@ func (driver *LoraDriver) RemoveDevice(deviceName string, protocols map[string]m
 	// 删除设备
 	err = driver.deleteDevice(ctx, deviceName, protocolParams.EUI)
 	// }
+
+	// 删除设备profile，codec转移到profile里面后由于取不到profileName，所以无法删除profile
+	// driver.deleteProfile(ctx, driver.tenantId, profileName)
 
 	return
 }
@@ -413,7 +424,7 @@ func (driver *LoraDriver) deleteProfile(ctx context.Context, tenantId string, na
 	return
 }
 
-func (driver *LoraDriver) createGateway(ctx context.Context, gateWayId string, name string) (err error) {
+func (driver *LoraDriver) createGateway(ctx context.Context, gateWayId string, name string, tenantId string) (err error) {
 	client := api.NewGatewayServiceClient(driver.conn)
 
 	var resp *api.GetGatewayResponse
@@ -428,7 +439,7 @@ func (driver *LoraDriver) createGateway(ctx context.Context, gateWayId string, n
 		Gateway: &api.Gateway{
 			GatewayId:     gateWayId,
 			Name:          name,
-			TenantId:      driver.tenantId,
+			TenantId:      tenantId,
 			StatsInterval: 3000,
 		},
 	}); err != nil {
@@ -477,53 +488,47 @@ func (driver *LoraDriver) deleteGateway(ctx context.Context, gateWayId string) (
 	return
 }
 
-func (driver *LoraDriver) createDevice(ctx context.Context, DevEUI string, name string, profileName string, codec string) (err error) {
-	var deviceProfileId string
-	// 以设备名称为参数创建设备profile，
-	if deviceProfileId, err = driver.createProfile(ctx, driver.tenantId, name, codec); err == nil {
-		client := api.NewDeviceServiceClient(driver.conn)
-		if _, err = client.Create(ctx, &api.CreateDeviceRequest{
-			Device: &api.Device{
-				DevEui:          DevEUI,
-				Name:            name,
-				ApplicationId:   driver.applicationId,
-				DeviceProfileId: deviceProfileId,
-				SkipFcntCheck:   true,
-			},
-		}); err == nil {
-			fmt.Println("dev create success")
+func (driver *LoraDriver) createDevice(ctx context.Context, DevEUI string, name string, deviceProfileId string, applicationId string) (err error) {
+	client := api.NewDeviceServiceClient(driver.conn)
+	if _, err = client.Create(ctx, &api.CreateDeviceRequest{
+		Device: &api.Device{
+			DevEui:          DevEUI,
+			Name:            name,
+			ApplicationId:   applicationId,
+			DeviceProfileId: deviceProfileId,
+			SkipFcntCheck:   true,
+		},
+	}); err == nil {
+		fmt.Println("dev create success")
 
-			//激活设备
-			var resp *api.GetRandomDevAddrResponse
-			if resp, err = client.GetRandomDevAddr(ctx, &api.GetRandomDevAddrRequest{
-				DevEui: DevEUI,
-			}); err != nil {
-				fmt.Println("dev get addr fail", err)
-			} else {
-				fmt.Println("dev get addr", resp.DevAddr)
-				if _, err := client.Activate(ctx, &api.ActivateDeviceRequest{
-					DeviceActivation: &api.DeviceActivation{
-						DevEui:      DevEUI,
-						DevAddr:     resp.DevAddr,
-						AppSKey:     Key,
-						NwkSEncKey:  Key,
-						SNwkSIntKey: Key,
-						FNwkSIntKey: Key,
-					},
-				}); err != nil {
-					fmt.Println("dev Activate fail", err)
-				} else {
-					fmt.Println("dev activate success")
-				}
-			}
-
-			//监听设备，上报数据
-			driver.recvDeviceStream(ctx, DevEUI, name, "json")
+		//激活设备
+		var resp *api.GetRandomDevAddrResponse
+		if resp, err = client.GetRandomDevAddr(ctx, &api.GetRandomDevAddrRequest{
+			DevEui: DevEUI,
+		}); err != nil {
+			fmt.Println("dev get addr fail", err)
 		} else {
-			fmt.Println("dev create fail", err)
+			fmt.Println("dev get addr", resp.DevAddr)
+			if _, err := client.Activate(ctx, &api.ActivateDeviceRequest{
+				DeviceActivation: &api.DeviceActivation{
+					DevEui:      DevEUI,
+					DevAddr:     resp.DevAddr,
+					AppSKey:     Key,
+					NwkSEncKey:  Key,
+					SNwkSIntKey: Key,
+					FNwkSIntKey: Key,
+				},
+			}); err != nil {
+				fmt.Println("dev Activate fail", err)
+			} else {
+				fmt.Println("dev activate success")
+			}
 		}
+
+		//监听设备，上报数据
+		driver.recvDeviceStream(ctx, DevEUI, name, "json")
 	} else {
-		fmt.Println("dev profile create fail", err)
+		fmt.Println("dev create fail", err)
 	}
 
 	return
@@ -559,9 +564,6 @@ func (driver *LoraDriver) deleteDevice(ctx context.Context, deviceName string, D
 		DevEui: DevEUI,
 	}); err == nil {
 		fmt.Println("dev delete success")
-
-		//删除设备profile
-		driver.deleteProfile(ctx, driver.tenantId, deviceName)
 	} else {
 		fmt.Println("dev delete fail", err)
 	}

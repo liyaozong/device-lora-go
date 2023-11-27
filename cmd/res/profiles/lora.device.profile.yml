@@ -10,9 +10,9 @@ deviceResources:
 - name: json
   isHidden: true
   description: "Lora push JSON message"
-  attributes:
-    { codec: "/**javascript**/" }
   properties:
     valueType: "Object"
     readWrite: "R"
     mediaType: "application/json"
+    optional:
+      { codec: "/** Javascript codec **/" }
