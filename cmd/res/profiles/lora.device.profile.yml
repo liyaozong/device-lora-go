@@ -1,0 +1,18 @@
+name: "Lora-Device-Profile"
+manufacturer: "Starblaze"
+model: "Starblaze"
+labels:
+- "Lora"
+- "Air conditioner"
+description: "lora设备"
+
+deviceResources:
+- name: json
+  isHidden: true
+  description: "Lora push JSON message"
+  attributes:
+    { codec: "/**javascript**/" }
+  properties:
+    valueType: "Object"
+    readWrite: "R"
+    mediaType: "application/json"

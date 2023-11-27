@@ -1,0 +1,22 @@
+# deviceList:
+#   - name: Lora-test-device
+#     profileName: Test-Device-Lora-Profile
+#     description: 这是一个Lora设备
+#     labels:
+#       - lora
+#       - json
+#     protocols:
+#       lora:
+#         EUI: 9d13b5893728d5f6
+#     autoEvents:
+#       - interval: 20s
+#         onChange: false
+#         sourceName: Values
+#   - name: Lora-gateway-test-device
+#     profileName: Test-Device-Lora-gateway-Profile
+#     description: 这是一个Lora网关
+#     labels:
+#       - lora gateway
+#     protocols:
+#       lora:
+#         EUI: 12c94daec6a7984d

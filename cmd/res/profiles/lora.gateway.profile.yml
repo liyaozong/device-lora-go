@@ -1,0 +1,7 @@
+name: "Lora-Gateway-Device-Profile"
+manufacturer: "Starblaze"
+model: "Starblaze"
+labels:
+- "Lora"
+- "Gateway"
+description: "lora网关"
