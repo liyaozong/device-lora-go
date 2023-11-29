@@ -1,5 +1,9 @@
 package driver
 
 const (
-	CODEC = "codec"
+	LoraEUI      = "eui"
+	LoraCodec    = "codec"
+	LoraProtocol = "Lora"
+	LoraGateway  = "Gateway"
+	CODEC        = "codec"
 )

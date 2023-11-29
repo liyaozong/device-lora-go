@@ -7,31 +7,18 @@ require (
 	github.com/edgexfoundry/go-mod-core-contracts/v3 v3.1.0-dev.16
 	github.com/labstack/echo/v4 v4.11.1
 	github.com/spf13/cast v1.5.1
-	github.com/stretchr/testify v1.8.4
 )
 
-require (
-	bitbucket.org/bertimus9/systemstat v0.5.0 // indirect
-	github.com/edgexfoundry/go-mod-bootstrap/v2 v2.3.0 // indirect
-	github.com/edgexfoundry/go-mod-configuration/v2 v2.3.0 // indirect
-	github.com/edgexfoundry/go-mod-core-contracts/v2 v2.3.0 // indirect
-	github.com/edgexfoundry/go-mod-messaging/v2 v2.3.0 // indirect
-	github.com/edgexfoundry/go-mod-registry/v2 v2.3.0 // indirect
-	github.com/edgexfoundry/go-mod-secrets/v2 v2.3.0 // indirect
-	github.com/gorilla/mux v1.8.0 // indirect
-	github.com/pebbe/zmq4 v1.2.7 // indirect
-	github.com/pelletier/go-toml v1.9.5 // indirect
-)
+require github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 
 require (
 	github.com/Microsoft/go-winio v0.6.0 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/armon/go-metrics v0.4.1 // indirect
+	github.com/brocaar/chirpstack-api/go/v3 v3.12.5
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/chirpstack/chirpstack/api/go/v4 v4.5.1
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/eclipse/paho.mqtt.golang v1.4.3 // indirect
-	github.com/edgexfoundry/device-sdk-go/v2 v2.3.1
 	github.com/edgexfoundry/go-mod-bootstrap/v3 v3.1.0-dev.46 // indirect
 	github.com/edgexfoundry/go-mod-configuration/v3 v3.1.0-dev.7 // indirect
 	github.com/edgexfoundry/go-mod-messaging/v3 v3.1.0-dev.25 // indirect
@@ -48,7 +35,7 @@ require (
 	github.com/go-playground/validator/v10 v10.15.5 // indirect
 	github.com/go-redis/redis/v7 v7.3.0 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.3.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/consul/api v1.25.1 // indirect
@@ -73,11 +60,9 @@ require (
 	github.com/nats-io/nats.go v1.30.2 // indirect
 	github.com/nats-io/nkeys v0.4.5 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/satori/go.uuid v1.2.0
 	github.com/spiffe/go-spiffe/v2 v2.1.6 // indirect
-	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
@@ -92,7 +77,7 @@ require (
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.6.0 // indirect
 	google.golang.org/genproto v0.0.0-20230223222841-637eb2293923 // indirect
-	google.golang.org/grpc v1.53.0 // indirect
+	google.golang.org/grpc v1.53.0
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

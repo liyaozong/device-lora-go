@@ -25,3 +25,10 @@ Device:
   # These have common values (currently), but must be here for service local env overrides to apply when customized
   ProfilesDir: "./res/profiles"
   DevicesDir: "./res/devices"
+
+ChirpStack:
+  Version: V3
+  Host: 172.16.65.160:8080
+  Username: admin
+  Password: admin
+  ActivateKey: bc67cd6eb45a08d975050b1887b93c23

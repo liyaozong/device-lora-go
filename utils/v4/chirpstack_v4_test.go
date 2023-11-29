@@ -1,4 +1,4 @@
-package driver
+package v4
 
 import (
 	"context"
@@ -15,10 +15,27 @@ import (
 
 // configuration
 var (
-	tenantId    = "52f14cd4-c6f1-4fbd-8f87-4025e1d49242"
-	globalToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJjaGlycHN0YWNrIiwiaXNzIjoiY2hpcnBzdGFjayIsInN1YiI6Ijg4MzY5ZDA4LWFjODItNGJmNy1iYjhmLWY4MjdkMjAxZWYxZiIsInR5cCI6ImtleSJ9.4fOyiEeLsJw8T0CosXkpUR7KwpJG6XX8xNeImL2r4G8"
-	tenantToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJjaGlycHN0YWNrIiwiaXNzIjoiY2hpcnBzdGFjayIsInN1YiI6ImU4MTg2MDA4LTQ2MGItNGVlNi04NTczLTk3MzllOGI4ZDBlYiIsInR5cCI6ImtleSJ9.QVc7rzjzji1b28oBVZUnN-aWIWol_LbJtx9syLOgu38"
+	Limit32     uint32 = 100
+	Key         string = "bc67cd6eb45a08d975050b1887b93c23"
+	Host        string = "172.16.64.157:8082"
+	Admin       string = "admin"
+	Password    string = "admin"
+	tenantId           = "52f14cd4-c6f1-4fbd-8f87-4025e1d49242"
+	globalToken        = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJjaGlycHN0YWNrIiwiaXNzIjoiY2hpcnBzdGFjayIsInN1YiI6Ijg4MzY5ZDA4LWFjODItNGJmNy1iYjhmLWY4MjdkMjAxZWYxZiIsInR5cCI6ImtleSJ9.4fOyiEeLsJw8T0CosXkpUR7KwpJG6XX8xNeImL2r4G8"
+	tenantToken        = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJjaGlycHN0YWNrIiwiaXNzIjoiY2hpcnBzdGFjayIsInN1YiI6ImU4MTg2MDA4LTQ2MGItNGVlNi04NTczLTk3MzllOGI4ZDBlYiIsInR5cCI6ImtleSJ9.QVc7rzjzji1b28oBVZUnN-aWIWol_LbJtx9syLOgu38"
 )
+
+type APIToken string
+
+func (a APIToken) GetRequestMetadata(ctx context.Context, url ...string) (map[string]string, error) {
+	return map[string]string{
+		"authorization": fmt.Sprintf("Bearer %s", a),
+	}, nil
+}
+
+func (a APIToken) RequireTransportSecurity() bool {
+	return false
+}
 
 func dial(token string) (conn *grpc.ClientConn, err error) {
 	// define gRPC dial options
@@ -50,7 +67,7 @@ func TestLogin(t *testing.T) {
 
 		client2 := api.NewInternalServiceClient(conn)
 		if resp, err := client2.ListApiKeys(ctx, &api.ListApiKeysRequest{
-			Limit: Limit,
+			Limit: Limit32,
 			// IsAdmin: true,
 			TenantId: tenantId,
 		}); err != nil {
@@ -82,7 +99,7 @@ func TestLogin(t *testing.T) {
 
 		client3 := api.NewDeviceProfileServiceClient(conn)
 		resp2, err := client3.List(ctx, &api.ListDeviceProfilesRequest{
-			Limit:    Limit,
+			Limit:    Limit32,
 			TenantId: tenantId,
 			Search:   "Lora Device Profile",
 		})
@@ -98,7 +115,7 @@ func TestChirp(t *testing.T) {
 	conn, _ := dial(globalToken)
 	client := api.NewTenantServiceClient(conn)
 	if resp, err := client.List(context.Background(), &api.ListTenantsRequest{
-		Limit: Limit,
+		Limit: Limit32,
 	}); err != nil {
 		fmt.Println("tenants", err)
 	} else {
@@ -121,7 +138,7 @@ func TestTenant(t *testing.T) {
 		},
 	})
 	resp, err := client.List(context.Background(), &api.ListApplicationsRequest{
-		Limit:    Limit,
+		Limit:    Limit32,
 		TenantId: tenantId,
 	})
 	if err != nil {
@@ -195,7 +212,7 @@ func TestDevice(t *testing.T) {
 	}
 
 	if resp4, err := client.List(context.Background(), &api.ListDevicesRequest{
-		Limit:         Limit,
+		Limit:         Limit32,
 		ApplicationId: appId,
 	}); err != nil {
 		fmt.Println("devs", err)
@@ -272,7 +289,7 @@ func TestGateway(t *testing.T) {
 	}
 
 	resp3, err := client.List(context.Background(), &api.ListGatewaysRequest{
-		Limit:    Limit,
+		Limit:    Limit32,
 		TenantId: tenantId,
 	})
 	if err != nil {
@@ -304,7 +321,7 @@ func TestDevProfile(t *testing.T) {
 	})
 
 	resp2, err := client.List(context.Background(), &api.ListDeviceProfilesRequest{
-		Limit:    Limit,
+		Limit:    Limit32,
 		TenantId: tenantId,
 		Search:   "Lora Device Profile",
 	})

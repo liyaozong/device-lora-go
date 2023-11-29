@@ -1,6 +1,6 @@
 #
 # Copyright (c) 2023 Intel Corporation
-# Copyright (c) 2021 IOTech Ltd
+# Copyright (c) 2021 Starblaze Ltd
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.

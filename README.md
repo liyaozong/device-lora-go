@@ -1,2 +1,2 @@
 cd cmd
-go run main.go --cp=consul://edgex-core-consul:8500 --registry
+go run -tags=chirpstack3 main.go --cp=consul://edgex-core-consul:8500 --registry
