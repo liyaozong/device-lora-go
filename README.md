@@ -120,4 +120,37 @@ LoraWan设备入网后，也可通过chirpstack提供的通道进行远程命令
 
 cd cmd
 go run -tags=chirpstack3 main.go --cp=consul://edgex-core-consul:8500 --registry
-go run -tags=chirpstack4 main.go --cp=consul://edgex-core-consul:8500 --registry
+
+ADD_BUILD_TAGS=chirpstack3 make build
+docker build -t 172.16.65.169:17443/star/device-lora:V23.12.1.0.0 -f Dockerfile_location .
+
+## 环境配置
+
+在.vscode中创建settings.json文件，添加如下内容：
+```
+{
+    "gopls": {
+        "buildFlags": [
+            "-tags=chirpstack3"
+        ]
+    }
+}
+```
+
+为方便调试，在.vscode中创建Launch.json文件，添加如下内容：
+```
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Package",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "cmd/main.go",
+            "buildFlags": ["-tags=chirpstack3"],
+            "args": ["--cp=consul://edgex-core-consul:8500", "--registry"]
+        }
+    ]
+}
+```

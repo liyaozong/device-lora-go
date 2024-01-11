@@ -1,9 +1,11 @@
 package driver
 
 const (
+	// Lora protocol params
+	LoraProtocol = "lora"
 	LoraEUI      = "eui"
-	LoraCodec    = "codec"
-	LoraProtocol = "Lora"
-	LoraGateway  = "Gateway"
-	CODEC        = "codec"
+	LoraGateway  = "gateway"
+
+	// Lora device profile optional params
+	CODEC = "codec"
 )

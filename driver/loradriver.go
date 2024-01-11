@@ -26,12 +26,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/edgexfoundry/device-lora-go/config"
 	"github.com/edgexfoundry/device-sdk-go/v3/pkg/interfaces"
-	sdkModel "github.com/edgexfoundry/device-sdk-go/v3/pkg/models"
+	sdkModels "github.com/edgexfoundry/device-sdk-go/v3/pkg/models"
 	"github.com/edgexfoundry/go-mod-core-contracts/v3/clients/logger"
 	"github.com/edgexfoundry/go-mod-core-contracts/v3/common"
 	"github.com/edgexfoundry/go-mod-core-contracts/v3/models"
@@ -40,7 +39,7 @@ import (
 type LoraDriver struct {
 	sdk       interfaces.DeviceServiceSDK
 	logger    logger.LoggingClient
-	AsyncCh   chan<- *sdkModel.AsyncValues
+	AsyncCh   chan<- *sdkModels.AsyncValues
 	chirp     ChirpStack
 	listeners map[string]Listener
 }
@@ -77,31 +76,29 @@ func (driver *LoraDriver) Start() error {
 	ctx := driver.chirp.Login()
 
 	for _, device := range devices {
-		if !strings.Contains(device.ProfileName, LoraGateway) {
-			if protocolParams, err := getDeviceParameters(device.Protocols); err == nil {
-				//监听设备
-				listener := Listener{
-					driver:     driver,
-					DeviceName: device.Name,
-					config:     driver.chirp.config,
-					Stop:       false,
-				}
-				listener.Listening(&driver.chirp, ctx, protocolParams.EUI)
-				driver.listeners[protocolParams.EUI] = listener
+		if protocolParams, err := getDeviceParameters(device.Protocols); err == nil && !protocolParams.Gateway {
+			//监听设备
+			listener := Listener{
+				driver:     driver,
+				DeviceName: device.Name,
+				config:     driver.chirp.config,
+				Stop:       false,
 			}
+			driver.listeners[protocolParams.EUI] = listener
+			go listener.Listening(&driver.chirp, ctx, protocolParams.EUI)
 		}
 	}
 	handler := NewLoraHandler(driver.sdk)
 	return handler.Start()
 }
 
-func (driver *LoraDriver) HandleReadCommands(deviceName string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest) (responses []*sdkModel.CommandValue, err error) {
+func (driver *LoraDriver) HandleReadCommands(deviceName string, protocols map[string]models.ProtocolProperties, reqs []sdkModels.CommandRequest) (responses []*sdkModels.CommandValue, err error) {
 	driver.logger.Info("Lora not support HandleReadCommands function")
 
 	return nil, fmt.Errorf("Lora not support HandleReadCommands function")
 }
 
-func (driver *LoraDriver) HandleWriteCommands(deviceName string, protocols map[string]models.ProtocolProperties, reqs []sdkModel.CommandRequest, params []*sdkModel.CommandValue) (err error) {
+func (driver *LoraDriver) HandleWriteCommands(deviceName string, protocols map[string]models.ProtocolProperties, reqs []sdkModels.CommandRequest, params []*sdkModels.CommandValue) (err error) {
 	var protocolParams LoraProtocolParams
 	if protocolParams, err = getDeviceParameters(protocols); err != nil {
 		return fmt.Errorf("Device parameters missing :%s \n", err.Error())
@@ -167,6 +164,15 @@ func getDeviceParameters(protocols map[string]models.ProtocolProperties) (LoraPr
 		}
 	} else {
 		return restDeviceProtocolParams, errors.New("EUI not found")
+	}
+
+	// Get end device LoraGateway
+	if gateway, ok := protocolParams[LoraGateway]; ok {
+		if restDeviceProtocolParams.Gateway, ok = gateway.(bool); !ok {
+			return restDeviceProtocolParams, errors.New("LoraGateway is not string type")
+		}
+	} else {
+		return restDeviceProtocolParams, errors.New("LoraGateway not found")
 	}
 
 	return restDeviceProtocolParams, nil
@@ -242,9 +248,9 @@ func (driver *LoraDriver) ValidateDevice(device models.Device) error {
 	return nil
 }
 
-func (driver *LoraDriver) NewResult(resource models.DeviceResource, reading interface{}) (*sdkModel.CommandValue, error) {
+func (driver *LoraDriver) NewResult(resource models.DeviceResource, reading interface{}) (*sdkModels.CommandValue, error) {
 	var err error
-	var result = &sdkModel.CommandValue{}
+	var result = &sdkModels.CommandValue{}
 
 	valueType := resource.Properties.ValueType
 
@@ -256,7 +262,7 @@ func (driver *LoraDriver) NewResult(resource models.DeviceResource, reading inte
 		return nil, fmt.Errorf("return result fail, none supported value type: %v", valueType)
 	}
 
-	if result, err = sdkModel.NewCommandValue(resource.Name, valueType, val); err != nil {
+	if result, err = sdkModels.NewCommandValue(resource.Name, valueType, val); err != nil {
 		return nil, err
 	}
 	result.Origin = time.Now().UnixNano()

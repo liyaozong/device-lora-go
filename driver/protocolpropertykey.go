@@ -8,5 +8,6 @@ package driver
 
 // LoraProtocolParams holds end device protocol parameters
 type LoraProtocolParams struct {
-	EUI string // 设备EUI、网关EUI
+	EUI     string // 设备EUI、网关EUI
+	Gateway bool   // 是否是网关设备
 }

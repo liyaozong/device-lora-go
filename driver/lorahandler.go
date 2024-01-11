@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/edgexfoundry/device-sdk-go/v3/pkg/interfaces"
-	"github.com/edgexfoundry/device-sdk-go/v3/pkg/models"
+	sdkModels "github.com/edgexfoundry/device-sdk-go/v3/pkg/models"
 	"github.com/edgexfoundry/go-mod-core-contracts/v3/clients/logger"
 	"github.com/edgexfoundry/go-mod-core-contracts/v3/common"
 	model "github.com/edgexfoundry/go-mod-core-contracts/v3/models"
@@ -44,7 +44,7 @@ const (
 type LoraHandler struct {
 	service     interfaces.DeviceServiceSDK
 	logger      logger.LoggingClient
-	asyncValues chan<- *models.AsyncValues
+	asyncValues chan<- *sdkModels.AsyncValues
 }
 
 func NewLoraHandler(sdk interfaces.DeviceServiceSDK) *LoraHandler {
@@ -58,13 +58,13 @@ func NewLoraHandler(sdk interfaces.DeviceServiceSDK) *LoraHandler {
 }
 
 func (handler LoraHandler) Start() error {
-	if err := handler.service.AddCustomRoute(
-		apiResourceRoute,
-		interfaces.Authenticated,
-		handler.addContext(deviceHandler),
-		http.MethodPost); err != nil {
-		return fmt.Errorf("unable to add required route: %s: %s", apiResourceRoute, err.Error())
-	}
+	//if err := handler.service.AddCustomRoute(
+	//	apiResourceRoute,
+	//	interfaces.Authenticated,
+	//	handler.addContext(deviceHandler),
+	//	http.MethodPost); err != nil {
+	//	return fmt.Errorf("unable to add required route: %s: %s", apiResourceRoute, err.Error())
+	//}
 
 	handler.logger.Infof("Route %s added.", apiResourceRoute)
 
@@ -121,7 +121,7 @@ func (handler LoraHandler) processAsyncRequest(c echo.Context) error {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
 
-	result, err := models.NewCommandValue(deviceResource.Name, deviceResource.Properties.ValueType, value)
+	result, err := sdkModels.NewCommandValue(deviceResource.Name, deviceResource.Properties.ValueType, value)
 	if err != nil {
 		handler.logger.Errorf("Incoming reading ignored. Unable to create Command Value for Device=%s Command=%s: %s",
 			deviceName, resourceName, err.Error())
@@ -129,9 +129,9 @@ func (handler LoraHandler) processAsyncRequest(c echo.Context) error {
 	}
 	result.Origin = time.Now().UnixNano()
 
-	asyncValues := &models.AsyncValues{
+	asyncValues := &sdkModels.AsyncValues{
 		DeviceName:    deviceName,
-		CommandValues: []*models.CommandValue{result},
+		CommandValues: []*sdkModels.CommandValue{result},
 	}
 
 	handler.logger.Debugf("Incoming reading received: Device=%s Resource=%s", deviceName, resourceName)

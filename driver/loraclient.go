@@ -3,7 +3,6 @@ package driver
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/edgexfoundry/go-mod-core-contracts/v3/models"
 )
@@ -24,7 +23,7 @@ func (driver *LoraDriver) AddLoraDevice(chirp *ChirpStack, device models.Device,
 		profileId, err = chirp.CreateProfile(ctx, profile.Name, codec)
 	}
 
-	if strings.Contains(device.ProfileName, LoraGateway) {
+	if protocolParams.Gateway {
 		// 创建网关
 		err = chirp.CreateGateway(ctx, protocolParams.EUI, device.Name)
 	} else {
@@ -40,8 +39,8 @@ func (driver *LoraDriver) AddLoraDevice(chirp *ChirpStack, device models.Device,
 				config:     chirp.config,
 				Stop:       false,
 			}
-			listener.Listening(chirp, ctx, protocolParams.EUI)
 			driver.listeners[device.Name] = listener
+			go listener.Listening(chirp, ctx, protocolParams.EUI)
 		}
 	}
 	return
@@ -50,7 +49,7 @@ func (driver *LoraDriver) AddLoraDevice(chirp *ChirpStack, device models.Device,
 func (driver *LoraDriver) UpdateLoraDevice(chirp *ChirpStack, device models.Device, protocolParams LoraProtocolParams) (err error) {
 	// 登录chirpstack
 	ctx := chirp.Login()
-	if strings.Contains(device.ProfileName, LoraGateway) {
+	if protocolParams.Gateway {
 		// 更新网关
 		err = chirp.UpdateGateway(ctx, protocolParams.EUI, device.Name)
 	} else {
@@ -69,8 +68,8 @@ func (driver *LoraDriver) UpdateLoraDevice(chirp *ChirpStack, device models.Devi
 					config:     chirp.config,
 					Stop:       false,
 				}
-				listener.Listening(chirp, ctx, protocolParams.EUI)
 				driver.listeners[device.Name] = listener
+				go listener.Listening(chirp, ctx, protocolParams.EUI)
 			}
 		}
 	}
@@ -81,14 +80,17 @@ func (driver *LoraDriver) UpdateLoraDevice(chirp *ChirpStack, device models.Devi
 func (driver *LoraDriver) RemoveLoraDevice(chirp *ChirpStack, deviceName string, protocolParams LoraProtocolParams) (err error) {
 	// 登录chirpstack
 	ctx := chirp.Login()
-	// 先尝试删除网关
-	err = chirp.DeleteGateway(ctx, protocolParams.EUI)
-	// 再尝试删除设备
-	if err = chirp.DeleteDevice(ctx, deviceName, protocolParams.EUI); err == nil {
-		// 删除监听
-		if listener, ok := driver.listeners[deviceName]; ok {
-			listener.Cancel()
-			delete(driver.listeners, deviceName)
+	if protocolParams.Gateway {
+		// 删除网关
+		err = chirp.DeleteGateway(ctx, protocolParams.EUI)
+	} else {
+		// 删除设备
+		if err = chirp.DeleteDevice(ctx, deviceName, protocolParams.EUI); err == nil {
+			// 删除监听
+			if listener, ok := driver.listeners[deviceName]; ok {
+				listener.Cancel()
+				delete(driver.listeners, deviceName)
+			}
 		}
 	}
 

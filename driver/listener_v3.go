@@ -13,7 +13,7 @@ import (
 
 	"github.com/brocaar/chirpstack-api/go/v3/as/external/api"
 	"github.com/edgexfoundry/device-lora-go/config"
-	sdkModel "github.com/edgexfoundry/device-sdk-go/v3/pkg/models"
+	sdkModels "github.com/edgexfoundry/device-sdk-go/v3/pkg/models"
 	"github.com/edgexfoundry/go-mod-core-contracts/v3/models"
 )
 
@@ -86,14 +86,14 @@ func (e *Listener) Listening(chirp *ChirpStack, ctx context.Context, DevEUI stri
 				continue
 			}
 
-			var commandValues []*sdkModel.CommandValue
+			var commandValues []*sdkModels.CommandValue
 			commandValue, err := e.driver.NewResult(deviceResource, payloadJson.ObjectJSON)
 			if err != nil {
 				continue
 			}
 			commandValues = append(commandValues, commandValue)
 
-			asyncValues := &sdkModel.AsyncValues{
+			asyncValues := &sdkModels.AsyncValues{
 				DeviceName:    e.DeviceName,
 				SourceName:    deviceResource.Name,
 				CommandValues: commandValues,
@@ -109,5 +109,7 @@ func (e *Listener) Listening(chirp *ChirpStack, ctx context.Context, DevEUI stri
 
 func (e *Listener) Cancel() {
 	e.Stop = true
-	e.stream.Context().Done()
+	if e.stream != nil {
+		e.stream.Context().Done()
+	}
 }
