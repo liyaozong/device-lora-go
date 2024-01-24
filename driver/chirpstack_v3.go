@@ -30,8 +30,8 @@ func (c *ChirpStack) Init() (err error) {
 	return
 }
 
-func (c *ChirpStack) Login() (ctx context.Context) {
-	ctx = v3.Login(c.conn, c.config.Username, c.config.Password)
+func (c *ChirpStack) Login() (ctx context.Context, err error) {
+	ctx, err = v3.Login(c.conn, c.config.Username, c.config.Password)
 	return
 }
 

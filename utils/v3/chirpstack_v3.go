@@ -5,6 +5,7 @@ package v3
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/brocaar/chirpstack-api/go/v3/as/external/api"
@@ -19,72 +20,91 @@ var (
 )
 
 func Init(conn *grpc.ClientConn, config config.ChirpStackConfig) (netId, orgId, appId int64, err error) {
+	var ctx context.Context
 	// 登录chirpstack
-	ctx := Login(conn, config.Username, config.Password)
+	if ctx, err = Login(conn, config.Username, config.Password); err != nil {
+		return
+	}
 	// 获取netWorkServer
-	netId, err = initNetWorkServer(conn, ctx)
+	if netId, err = initNetWorkServer(conn, ctx); err != nil {
+		return
+	}
 	// 获取organization
-	orgId, err = initOrganization(conn, ctx)
+	if orgId, err = initOrganization(conn, ctx); err != nil {
+		return
+	}
 	// 获取application
-	appId, err = initApplication(conn, ctx, orgId)
+	if appId, err = initApplication(conn, ctx, orgId); err != nil {
+		return
+	}
+
 	return
 }
 
-func Login(conn *grpc.ClientConn, username, password string) (ctx context.Context) {
+func Login(conn *grpc.ClientConn, username, password string) (ctx context.Context, err error) {
 	client := api.NewInternalServiceClient(conn)
-	if resp, err := client.Login(context.Background(), &api.LoginRequest{
+	var resp *api.LoginResponse
+	if resp, err = client.Login(context.Background(), &api.LoginRequest{
 		Email:    username,
 		Password: password,
-	}); err == nil {
-		fmt.Println("jwt", resp.Jwt)
-		ctx = metadata.NewOutgoingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+resp.Jwt))
+	}); err != nil {
+		return nil, err
 	}
+
+	fmt.Println("jwt", resp.Jwt)
+	ctx = metadata.NewOutgoingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+resp.Jwt))
 	return
 }
 
 func initOrganization(conn *grpc.ClientConn, ctx context.Context) (organizationId int64, err error) {
 	// 返回值为 ApplicationServiceClient
 	client := api.NewOrganizationServiceClient(conn)
-	req := api.ListOrganizationRequest{
+	var resp *api.ListOrganizationResponse
+	if resp, err = client.List(ctx, &api.ListOrganizationRequest{
 		Limit: Limit64,
+	}); err != nil {
+		return -1, err
 	}
-	if resp, err := client.List(ctx, &req); err == nil {
-		if len(resp.Result) > 0 {
-			return resp.Result[0].Id, nil
-		} else {
-			var resp *api.CreateOrganizationResponse
-			if resp, err = client.Create(ctx, &api.CreateOrganizationRequest{
-				Organization: &api.Organization{
-					Name: "Starblaze",
-				},
-			}); err == nil {
-				return resp.Id, nil
-			}
+
+	if len(resp.Result) > 0 {
+		return resp.Result[0].Id, nil
+	} else {
+		var resp *api.CreateOrganizationResponse
+		if resp, err = client.Create(ctx, &api.CreateOrganizationRequest{
+			Organization: &api.Organization{
+				Name: "Starblaze",
+			},
+		}); err == nil {
+			return resp.Id, nil
 		}
 	}
-	return -1, nil
+
+	return -1, errors.New("init Organization fail")
 }
 
 func initNetWorkServer(conn *grpc.ClientConn, ctx context.Context) (netWorkServerId int64, err error) {
 	client := api.NewNetworkServerServiceClient(conn)
-	req := api.ListNetworkServerRequest{
+	var resp *api.ListNetworkServerResponse
+	if resp, err = client.List(ctx, &api.ListNetworkServerRequest{
 		Limit: Limit64,
+	}); err != nil {
+		return -1, err
 	}
-	if resp, err := client.List(ctx, &req); err == nil {
-		if len(resp.Result) > 0 {
-			return resp.Result[0].Id, nil
-		} else {
-			var resp *api.CreateNetworkServerResponse
-			if resp, err = client.Create(ctx, &api.CreateNetworkServerRequest{
-				NetworkServer: &api.NetworkServer{
-					Name: "Starblaze",
-				},
-			}); err == nil {
-				return resp.Id, nil
-			}
+
+	if len(resp.Result) > 0 {
+		return resp.Result[0].Id, nil
+	} else {
+		var resp *api.CreateNetworkServerResponse
+		if resp, err = client.Create(ctx, &api.CreateNetworkServerRequest{
+			NetworkServer: &api.NetworkServer{
+				Name: "Starblaze",
+			},
+		}); err == nil {
+			return resp.Id, nil
 		}
 	}
-	return -1, nil
+
+	return -1, errors.New("init networkserver fail")
 }
 
 func initApplication(conn *grpc.ClientConn, ctx context.Context, organizationId int64) (id int64, err error) {
@@ -95,22 +115,20 @@ func initApplication(conn *grpc.ClientConn, ctx context.Context, organizationId 
 		Limit:          Limit64,
 		OrganizationId: organizationId,
 	}); err != nil {
-		fmt.Println("apps", err)
 		return -1, err
+	}
+
+	if len(resp.Result) > 0 {
+		return resp.Result[0].Id, nil
 	} else {
-		fmt.Println("apps", resp.Result)
-		if len(resp.Result) > 0 {
-			return resp.Result[0].Id, nil
-		} else {
-			var resp *api.CreateApplicationResponse
-			if resp, err = client.Create(ctx, &api.CreateApplicationRequest{
-				Application: &api.Application{
-					Name:           "Starblaze App",
-					OrganizationId: organizationId,
-				},
-			}); err == nil {
-				return resp.Id, nil
-			}
+		var resp *api.CreateApplicationResponse
+		if resp, err = client.Create(ctx, &api.CreateApplicationRequest{
+			Application: &api.Application{
+				Name:           "Starblaze App",
+				OrganizationId: organizationId,
+			},
+		}); err == nil {
+			return resp.Id, nil
 		}
 	}
 	return -1, err

@@ -16,7 +16,8 @@
 #
 
 ARG BASE=golang:1.21-alpine3.18
-FROM ${BASE} AS builder
+FROM --platform=$BUILDPLATFORM ${BASE} AS builder
+ARG TARGETARCH
 
 ARG ADD_BUILD_TAGS=""
 ARG MAKE="make -e ADD_BUILD_TAGS=$ADD_BUILD_TAGS build"
@@ -29,6 +30,10 @@ RUN apk add --update --no-cache ${ALPINE_PKG_BASE} ${ALPINE_PKG_EXTRA}
 WORKDIR /device-lora-go
 
 COPY go.mod vendor* ./
+
+# 引入本地私有仓库中的工具代码库
+# RUN git config --global url."http://git:git@192.168.0.10/iot-sdk".insteadOf "http://192.168.0.10/iot-sdk"
+# RUN go env -w GOARCH=$TARGETARCH GOPROXY=https://goproxy.cn,direct GOPRIVATE=192.168.0.10 GOINSECURE=192.168.0.10
 RUN go env -w GOPROXY=https://goproxy.cn,direct
 RUN [ ! -d "vendor" ] && go mod download all || echo "skipping..."
 

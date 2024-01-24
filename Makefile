@@ -6,12 +6,13 @@ MICROSERVICES=cmd/device-lora
 
 ARCH=$(shell uname -m)
 
+ADD_BUILD_TAGS:=chirpstack3
+
 DOCKERS=docker_device_lora_go
 .PHONY: $(DOCKERS)
 
 VERSION=$(shell cat ./VERSION 2>/dev/null || echo 0.0.0)
 
-ADD_BUILD_TAGS=chirpstack3
 GIT_SHA=$(shell git rev-parse HEAD)
 SDKVERSION=$(shell cat ./go.mod | grep 'github.com/edgexfoundry/device-sdk-go/v3 v' | awk '{print $$2}')
 GOFLAGS=-ldflags "-X github.com/edgexfoundry/device-lora-go.Version=$(VERSION) \
@@ -62,6 +63,21 @@ docker_device_lora_go:
 		-t edgexfoundry/device-lora:$(GIT_SHA) \
 		-t edgexfoundry/device-lora:$(VERSION)-dev \
 		.
+
+docker_device_lora_multi:
+	for arch in "amd64" "arm64"; do \
+		docker buildx build --platform linux/$$arch \
+			--build-arg ADD_BUILD_TAGS=$(ADD_BUILD_TAGS) \
+			--build-arg http_proxy \
+			--build-arg https_proxy \
+			--label "git_sha=$(GIT_SHA)" \
+			-t edgexfoundry/device-lora:$(VERSION)-dev.$$arch \
+			. --load; \
+		docker push edgexfoundry/device-lora:$(VERSION)-dev.$$arch; \
+	done; \
+   	docker manifest create edgexfoundry/device-lora:$(VERSION)-dev \
+       $(foreach arch,$(ARCH),edgexfoundry/device-lora:$(VERSION)-dev.$(arch)) --amend --insecure;
+	docker manifest push edgexfoundry/device-lora:$(VERSION)-dev --insecure
 
 docker-nats:
 	make -e ADD_BUILD_TAGS=include_nats_messaging docker

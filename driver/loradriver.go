@@ -23,6 +23,7 @@
 package driver
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -70,10 +71,13 @@ func (driver *LoraDriver) Initialize(sdk interfaces.DeviceServiceSDK) (err error
 	return err
 }
 
-func (driver *LoraDriver) Start() error {
+func (driver *LoraDriver) Start() (err error) {
 	devices := driver.sdk.Devices()
 	// 登录chirpstack
-	ctx := driver.chirp.Login()
+	var ctx context.Context
+	if ctx, err = driver.chirp.Login(); err != nil {
+		return
+	}
 
 	for _, device := range devices {
 		if protocolParams, err := getDeviceParameters(device.Protocols); err == nil && !protocolParams.Gateway {

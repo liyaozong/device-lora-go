@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -9,7 +10,10 @@ import (
 
 func (driver *LoraDriver) AddLoraDevice(chirp *ChirpStack, device models.Device, profile models.DeviceProfile, protocolParams LoraProtocolParams) (err error) {
 	// 登录chirpstack
-	ctx := chirp.Login()
+	var ctx context.Context
+	if ctx, err = chirp.Login(); err != nil {
+		return
+	}
 
 	var profileId string
 	// lorawan返回的是json对象数据，
@@ -48,7 +52,11 @@ func (driver *LoraDriver) AddLoraDevice(chirp *ChirpStack, device models.Device,
 
 func (driver *LoraDriver) UpdateLoraDevice(chirp *ChirpStack, device models.Device, protocolParams LoraProtocolParams) (err error) {
 	// 登录chirpstack
-	ctx := chirp.Login()
+	var ctx context.Context
+	if ctx, err = chirp.Login(); err != nil {
+		return
+	}
+
 	if protocolParams.Gateway {
 		// 更新网关
 		err = chirp.UpdateGateway(ctx, protocolParams.EUI, device.Name)
@@ -79,7 +87,11 @@ func (driver *LoraDriver) UpdateLoraDevice(chirp *ChirpStack, device models.Devi
 
 func (driver *LoraDriver) RemoveLoraDevice(chirp *ChirpStack, deviceName string, protocolParams LoraProtocolParams) (err error) {
 	// 登录chirpstack
-	ctx := chirp.Login()
+	var ctx context.Context
+	if ctx, err = chirp.Login(); err != nil {
+		return
+	}
+
 	if protocolParams.Gateway {
 		// 删除网关
 		err = chirp.DeleteGateway(ctx, protocolParams.EUI)

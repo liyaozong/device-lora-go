@@ -20,24 +20,36 @@ var (
 )
 
 func Init(conn *grpc.ClientConn, config config.ChirpStackConfig) (tenantId, appId string, err error) {
+	var ctx context.Context
 	// 登录chirpstack
-	ctx := Login(conn, config.Username, config.Password)
+	if ctx, err = Login(conn, config.Username, config.Password); err != nil {
+		return
+	}
 	// 获取tentant
-	tenantId, err = initTenant(conn, ctx)
+	if tenantId, err = initTenant(conn, ctx); err != nil {
+		return
+	}
 	// 获取application
-	appId, err = initApplication(conn, ctx, tenantId)
+	if appId, err = initApplication(conn, ctx, tenantId); err != nil {
+		return
+	}
+
 	return
 }
 
-func Login(conn *grpc.ClientConn, username, password string) (ctx context.Context) {
+func Login(conn *grpc.ClientConn, username, password string) (ctx context.Context, err error) {
 	client := api.NewInternalServiceClient(conn)
-	if resp, err := client.Login(context.Background(), &api.LoginRequest{
+	var resp *api.LoginResponse
+	if resp, err = client.Login(context.Background(), &api.LoginRequest{
 		Email:    username,
 		Password: password,
-	}); err == nil {
-		fmt.Println("jwt", resp.Jwt)
-		ctx = metadata.NewOutgoingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+resp.Jwt))
+	}); err != nil {
+		return nil, err
 	}
+
+	fmt.Println("jwt", resp.Jwt)
+	ctx = metadata.NewOutgoingContext(context.Background(), metadata.Pairs("authorization", "Bearer "+resp.Jwt))
+
 	return
 }
 
@@ -47,24 +59,22 @@ func initTenant(conn *grpc.ClientConn, ctx context.Context) (id string, err erro
 	if resp, err = client.List(ctx, &api.ListTenantsRequest{
 		Limit: Limit,
 	}); err != nil {
-		fmt.Println("tenants", err)
 		return "", err
+	}
+	if len(resp.Result) > 0 {
+		return resp.Result[0].Id, nil
 	} else {
-		fmt.Println("tenants", resp.Result)
-		if len(resp.Result) > 0 {
-			return resp.Result[0].Id, nil
-		} else {
-			var resp *api.CreateTenantResponse
-			if resp, err = client.Create(ctx, &api.CreateTenantRequest{
-				Tenant: &api.Tenant{
-					Id:   uuid.NewV4().String(),
-					Name: "Starblaze",
-				},
-			}); err == nil {
-				return resp.Id, nil
-			}
+		var resp *api.CreateTenantResponse
+		if resp, err = client.Create(ctx, &api.CreateTenantRequest{
+			Tenant: &api.Tenant{
+				Id:   uuid.NewV4().String(),
+				Name: "Starblaze",
+			},
+		}); err == nil {
+			return resp.Id, nil
 		}
 	}
+
 	return "", err
 }
 
@@ -76,25 +86,24 @@ func initApplication(conn *grpc.ClientConn, ctx context.Context, tenantId string
 		Limit:    Limit,
 		TenantId: tenantId,
 	}); err != nil {
-		fmt.Println("apps", err)
 		return "", err
+	}
+
+	if len(resp.Result) > 0 {
+		return resp.Result[0].Id, nil
 	} else {
-		fmt.Println("apps", resp.Result)
-		if len(resp.Result) > 0 {
-			return resp.Result[0].Id, nil
-		} else {
-			var resp *api.CreateApplicationResponse
-			if resp, err = client.Create(ctx, &api.CreateApplicationRequest{
-				Application: &api.Application{
-					Id:       uuid.NewV4().String(),
-					Name:     "Starblaze App",
-					TenantId: tenantId,
-				},
-			}); err == nil {
-				return resp.Id, nil
-			}
+		var resp *api.CreateApplicationResponse
+		if resp, err = client.Create(ctx, &api.CreateApplicationRequest{
+			Application: &api.Application{
+				Id:       uuid.NewV4().String(),
+				Name:     "Starblaze App",
+				TenantId: tenantId,
+			},
+		}); err == nil {
+			return resp.Id, nil
 		}
 	}
+
 	return "", err
 }
 
